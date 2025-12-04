@@ -159,6 +159,24 @@ model SavedPost {
 }
 
 // ============================================================================
+// VIRAL POSTS (RAG System)
+// ============================================================================
+
+model ViralPost {
+  id          String   @id @default(uuid()) @db.Uuid
+  text        String   @db.Text
+  author      String   @db.Text
+  category    String   @db.Text
+  tone        String   @db.Text
+  hookStyle   String   @map("hook_style") @db.Text
+  viralScore  Float    @map("viral_score") @db.Real
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("viral_posts")
+}
+
+// ============================================================================
 // ANALYTICS
 // ============================================================================
 

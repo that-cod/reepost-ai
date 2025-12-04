@@ -1,0 +1,354 @@
+// Prisma schema for EasyGen SaaS Platform
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector", schema: "public")]
+}
+
+// ============================================================================
+// AUTHENTICATION & USERS
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String? // For email/password auth
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // LinkedIn specific
+  linkedInId       String?  @unique
+  linkedInUsername String?
+  linkedInUrn      String? // LinkedIn URN for API calls
+
+  // Subscription & Billing
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  plan                   Plan      @default(FREE)
+
+  // User preferences
+  defaultTone      Tone      @default(PROFESSIONAL)
+  defaultIntensity Intensity @default(MEDIUM)
+
+  // Relationships
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  savedPosts    SavedPost[]
+  analytics     Analytics[]
+  settings      Settings?
+  subscriptions Subscription[]
+
+  @@index([email])
+  @@index([linkedInId])
+  @@index([stripeCustomerId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================================
+// POSTS & CONTENT
+// ============================================================================
+
+model Post {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Generation metadata
+  topic     String?
+  tone      Tone      @default(PROFESSIONAL)
+  intensity Intensity @default(MEDIUM)
+
+  // AI metadata
+  aiModel        String? // "openai" or "anthropic"
+  generatedFrom  String? @db.Text // Original input/context
+  embeddingModel String? // Model used for embeddings
+
+  // Vector embeddings for semantic search (1536 dimensions for OpenAI ada-002)
+  embedding Unsupported("vector(1536)")?
+
+  // Publishing & Scheduling
+  status        PostStatus @default(DRAFT)
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  linkedInPostId String? // ID from LinkedIn after publishing
+
+  // Engagement metrics (synced from LinkedIn)
+  likes    Int @default(0)
+  comments Int @default(0)
+  shares   Int @default(0)
+  views    Int @default(0)
+
+  // Media attachments
+  mediaUrls String[] // URLs to media stored in Supabase Storage
+
+  // Relationships
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedBy    SavedPost[]
+  analytics  Analytics[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([createdAt])
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  savedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model Analytics {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String?
+  createdAt DateTime @default(now())
+
+  // Event type
+  eventType AnalyticsEvent
+
+  // Metrics
+  likes    Int @default(0)
+  comments Int @default(0)
+  shares   Int @default(0)
+  views    Int @default(0)
+  clicks   Int @default(0)
+
+  // Engagement rate
+  engagementRate Float @default(0)
+
+  // Time-based aggregation
+  date DateTime @db.Date
+
+  // Relationships
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([date])
+  @@index([eventType])
+}
+
+// ============================================================================
+// SETTINGS & PREFERENCES
+// ============================================================================
+
+model Settings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Publishing preferences
+  autoPublish         Boolean @default(false)
+  defaultScheduleTime String  @default("09:00") // HH:mm format
+
+  // AI preferences
+  preferredAiProvider String  @default("openai") // "openai" or "anthropic"
+  defaultTone         Tone    @default(PROFESSIONAL)
+  defaultIntensity    Intensity @default(MEDIUM)
+
+  // Notification preferences
+  emailNotifications      Boolean @default(true)
+  publishNotifications    Boolean @default(true)
+  engagementNotifications Boolean @default(true)
+
+  // LinkedIn preferences
+  autoSyncEngagement Boolean @default(true)
+  syncFrequency      Int     @default(60) // minutes
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// BILLING & SUBSCRIPTIONS
+// ============================================================================
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Stripe data
+  stripeSubscriptionId String   @unique
+  stripePriceId        String
+  stripeCustomerId     String
+  status               SubscriptionStatus
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean @default(false)
+  canceledAt           DateTime?
+
+  // Plan details
+  plan Plan
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================================================
+// RATE LIMITING & USAGE TRACKING
+// ============================================================================
+
+model Usage {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  month     DateTime @db.Date
+
+  // Usage counters
+  postsGenerated  Int @default(0)
+  postsPublished  Int @default(0)
+  aiCallsMade     Int @default(0)
+  storageUsedMb   Int @default(0)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@index([month])
+}
+
+// ============================================================================
+// LOGGING & AUDIT
+// ============================================================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum Tone {
+  PROFESSIONAL
+  CASUAL
+  ENTHUSIASTIC
+  THOUGHTFUL
+  BOLD
+  INSPIRATIONAL
+  EDUCATIONAL
+  HUMOROUS
+}
+
+enum Intensity {
+  LOW
+  MEDIUM
+  HIGH
+  EXTREME
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum AnalyticsEvent {
+  POST_CREATED
+  POST_PUBLISHED
+  POST_ENGAGEMENT
+  POST_VIEWED
+  POST_CLICKED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAST_DUE
+  TRIALING
+  UNPAID
+}

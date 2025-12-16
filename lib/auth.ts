@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
           client: {
             token_endpoint_auth_method: 'client_secret_post',
           },
-          issuer: 'https://www.linkedin.com',
+          issuer: 'https://www.linkedin.com/oauth',
           jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
           authorization: {
             params: {

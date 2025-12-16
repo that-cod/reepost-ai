@@ -47,9 +47,40 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = generateSchema.parse(body);
     topic = data.topic; // Assign topic here for logging in catch block
-    const { tone, category, length } = data;
 
-    logger.info('Generating post', { userId: user.id, topic });
+    // Fetch user settings to use as defaults
+    let userSettings = await prisma.settings.findUnique({
+      where: { userId: user.id },
+    });
+
+    // Create default settings if not exists
+    if (!userSettings) {
+      userSettings = await prisma.settings.create({
+        data: { userId: user.id },
+      });
+    }
+
+    // Use user settings as defaults if not provided in request
+    const tone = data.tone || userSettings.defaultTone;
+    const category = data.category;
+    // Map contentLength string to length enum
+    const lengthMap: Record<string, 'short' | 'medium' | 'long'> = {
+      'short': 'short',
+      'SHORT': 'short',
+      'medium': 'medium',
+      'MEDIUM': 'medium',
+      'long': 'long',
+      'LONG': 'long',
+    };
+    const length = data.length || (lengthMap[userSettings.contentLength] || 'medium');
+
+    logger.info('Generating post with user preferences', {
+      userId: user.id,
+      topic,
+      tone,
+      length,
+      fromSettings: !data.tone || !data.length
+    });
 
     // Step 1: Create embedding from user topic
     logger.info('Creating query embedding...');
@@ -80,7 +111,7 @@ export async function POST(request: NextRequest) {
     const styleGuide = generateStyleGuide(patterns);
 
     // Step 4: Build RAG-enhanced prompt using LinkedIn-optimized prompts
-    const { buildLinkedInPrompt } = await import('@/lib/prompts/linkedin');
+    const { buildLinkedInPrompt, cleanGeneratedContent } = await import('@/lib/prompts/linkedin');
 
     const examplePosts = similarPosts
       .slice(0, 3)
@@ -117,11 +148,12 @@ export async function POST(request: NextRequest) {
           content: userPrompt,
         },
       ],
-      temperature: 0.8,
+      temperature: 0.6, // Lower temperature for more deterministic output that follows rules
       max_tokens: 1000,
+      top_p: 0.9, // Slightly lower for more focused output
     });
 
-    const generatedPost = completion.choices[0].message.content?.trim() || '';
+    const generatedPost = cleanGeneratedContent(completion.choices[0].message.content?.trim() || '');
 
     if (!generatedPost) {
       throw new Error('No content generated');

@@ -32,17 +32,17 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Also get user data for linkedInProfileUrl
+    // Also get user data
     const userData = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
-        linkedInProfileUrl: true,
+        linkedInUsername: true,
       },
     });
 
     return NextResponse.json({
       ...settings,
-      linkedInProfileUrl: userData?.linkedInProfileUrl || '',
+      linkedInUsername: userData?.linkedInUsername || '',
     });
   } catch (error) {
     const errorResponse = formatErrorResponse(error as Error);
@@ -56,7 +56,6 @@ const updateSettingsSchema = z.object({
   // Profile settings
   timezone: z.string().optional(),
   jobDescriptions: z.array(z.string()).optional(),
-  linkedInProfileUrl: z.string().optional(),
 
   // Publishing preferences
   autoPublish: z.boolean().optional(),
@@ -67,7 +66,7 @@ const updateSettingsSchema = z.object({
   defaultTone: z.nativeEnum(Tone).optional(),
   defaultIntensity: z.nativeEnum(Intensity).optional(),
   aiToneText: z.string().optional(),
-  contentLength: z.enum(['short', 'medium', 'long']).optional(),
+  contentLength: z.string().optional(), // Accept any string, we'll normalize it
   emojiUsage: z.enum(['minimal', 'moderate', 'frequent']).optional(),
   hashtagCount: z.enum(['none', '1-2', '3-5', '6+']).optional(),
 
@@ -95,25 +94,24 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const data = updateSettingsSchema.parse(body);
 
-    // Extract linkedInProfileUrl to update on User model
-    const { linkedInProfileUrl, ...settingsData } = data;
+    // Normalize contentLength to lowercase
+    if (data.contentLength) {
+      data.contentLength = data.contentLength.toLowerCase();
+    }
 
     // Update settings
     const settings = await prisma.settings.upsert({
       where: { userId: user.id },
-      update: settingsData,
+      update: data,
       create: {
         userId: user.id,
-        ...settingsData,
+        ...data,
       },
     });
 
-    // Update user's linkedInProfileUrl and default tone/intensity
+    // Update user's default tone/intensity if provided
     const userUpdateData: Record<string, unknown> = {};
 
-    if (linkedInProfileUrl !== undefined) {
-      userUpdateData.linkedInProfileUrl = linkedInProfileUrl;
-    }
     if (data.defaultTone) {
       userUpdateData.defaultTone = data.defaultTone;
     }
@@ -128,10 +126,7 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      ...settings,
-      linkedInProfileUrl: linkedInProfileUrl || '',
-    });
+    return NextResponse.json(settings);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

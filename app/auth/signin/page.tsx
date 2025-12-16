@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Linkedin, Mail, Lock, User, Loader2 } from "lucide-react";
@@ -21,20 +21,22 @@ function SignInForm() {
         name: "",
     });
 
-    // Show error from URL params
-    if (error) {
-        const errorMessages: Record<string, string> = {
-            OAuthSignin: "Error starting OAuth sign-in",
-            OAuthCallback: "Error during OAuth callback",
-            OAuthCreateAccount: "Could not create OAuth account",
-            EmailCreateAccount: "Could not create email account",
-            Callback: "Error during callback",
-            OAuthAccountNotLinked: "Email already linked to another account",
-            CredentialsSignin: "Invalid email or password",
-            default: "An error occurred during sign-in",
-        };
-        toast.error(errorMessages[error] || errorMessages.default);
-    }
+    // Show error from URL params (in useEffect to avoid hydration mismatch)
+    useEffect(() => {
+        if (error) {
+            const errorMessages: Record<string, string> = {
+                OAuthSignin: "Error starting OAuth sign-in",
+                OAuthCallback: "Error during OAuth callback",
+                OAuthCreateAccount: "Could not create OAuth account",
+                EmailCreateAccount: "Could not create email account",
+                Callback: "Error during callback",
+                OAuthAccountNotLinked: "Email already linked to another account",
+                CredentialsSignin: "Invalid email or password",
+                default: "An error occurred during sign-in",
+            };
+            toast.error(errorMessages[error] || errorMessages.default);
+        }
+    }, [error]);
 
     const handleCredentialsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -16,7 +16,8 @@ import { SubscriptionStatus } from '@prisma/client';
  */
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  const signature = headers().get('stripe-signature');
+  const headersList = await headers();
+  const signature = headersList.get('stripe-signature');
 
   if (!signature) {
     return NextResponse.json(
@@ -168,7 +169,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * Handle invoice paid
  */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
 
   if (!subscriptionId) {
     return;
@@ -192,7 +193,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
  * Handle invoice payment failed
  */
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
 
   if (!subscriptionId) {
     return;
@@ -238,6 +239,7 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
   };
 
   const status = statusMap[subscription.status] || SubscriptionStatus.ACTIVE;
+  const sub = subscription as any;
 
   // Update user
   await prisma.user.update({
@@ -245,7 +247,7 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
     data: {
       stripeSubscriptionId: subscription.id,
       stripePriceId: priceId,
-      stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      stripeCurrentPeriodEnd: new Date(sub.current_period_end * 1000),
       plan,
     },
   });
@@ -261,15 +263,15 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
       stripePriceId: priceId!,
       stripeCustomerId: subscription.customer as string,
       status,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       plan,
     },
     update: {
       status,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
       plan,

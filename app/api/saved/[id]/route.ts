@@ -13,13 +13,14 @@ import { formatErrorResponse, NotFoundError, AuthorizationError } from '@/lib/er
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const { id } = await params;
 
     const savedPost = await prisma.savedPost.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!savedPost) {
@@ -31,7 +32,7 @@ export async function DELETE(
     }
 
     await prisma.savedPost.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

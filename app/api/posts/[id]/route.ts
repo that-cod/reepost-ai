@@ -19,13 +19,14 @@ import logger from '@/lib/logger';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const { id } = await params;
 
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!post) {
@@ -59,10 +60,11 @@ const updatePostSchema = z.object({
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const { id } = await params;
     const body = await req.json();
 
     // Validate input
@@ -70,7 +72,7 @@ export async function PATCH(
 
     // Check ownership
     const existingPost = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingPost) {
@@ -87,16 +89,25 @@ export async function PATCH(
       embedding = await generateEmbedding(data.content);
     }
 
-    // Update post
+    // Update post (excluding embedding which needs raw SQL)
     const post = await prisma.post.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...data,
         scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : undefined,
-        embedding: embedding ? `[${embedding.join(',')}]` : undefined,
         embeddingModel: embedding ? 'text-embedding-3-small' : undefined,
       },
     });
+
+    // Update embedding using raw SQL if changed
+    if (embedding) {
+      const embeddingStr = `[${embedding.join(',')}]`;
+      await prisma.$executeRaw`
+        UPDATE "Post" 
+        SET embedding = ${embeddingStr}::vector 
+        WHERE id = ${id}
+      `;
+    }
 
     logger.info('Post updated', { postId: post.id, userId: user.id });
 
@@ -106,7 +117,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           error: {
-            message: error.errors[0].message,
+            message: error.issues[0].message,
             code: 'VALIDATION_ERROR',
             statusCode: 400,
           },
@@ -127,14 +138,15 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const { id } = await params;
 
     // Check ownership
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!post) {
@@ -147,10 +159,10 @@ export async function DELETE(
 
     // Delete post
     await prisma.post.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
-    logger.info('Post deleted', { postId: params.id, userId: user.id });
+    logger.info('Post deleted', { postId: id, userId: user.id });
 
     return NextResponse.json({ success: true });
   } catch (error) {

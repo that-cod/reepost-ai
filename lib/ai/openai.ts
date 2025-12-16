@@ -7,9 +7,19 @@ import OpenAI from 'openai';
 import { Tone, Intensity } from '@prisma/client';
 import logger, { loggers } from '../logger';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is not set');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
@@ -31,7 +41,7 @@ export async function generatePost(params: {
   const startTime = Date.now();
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: DEFAULT_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -65,7 +75,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   const startTime = Date.now();
 
   try {
-    const response = await openai.embeddings.create({
+    const response = await getOpenAIClient().embeddings.create({
       model: EMBEDDING_MODEL,
       input: text,
     });
@@ -85,7 +95,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function extractTextFromImage(imageUrl: string): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4-vision-preview',
       messages: [
         {

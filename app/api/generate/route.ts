@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { z } from 'zod';
 import { createEmbedding } from '@/lib/embedding';
 import { searchSimilarPosts } from '@/lib/vector-search';
 import { extractPostPatterns, generateStyleGuide } from '@/lib/pattern-extraction';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/middleware/auth';
+import { checkRateLimit, aiRateLimiter } from '@/lib/ratelimit';
+import { formatErrorResponse } from '@/lib/errors';
+import logger from '@/lib/logger';
+import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Lazy-initialized OpenAI client
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is not set');
+    }
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
+
+const generateSchema = z.object({
+  topic: z.string().min(1, 'Topic is required'),
+  tone: z.string().optional(),
+  category: z.string().optional(),
+  length: z.enum(['short', 'medium', 'long']).optional(),
 });
 
 /**
@@ -14,26 +36,27 @@ const openai = new OpenAI({
  * Generate a LinkedIn post using RAG from viral posts
  */
 export async function POST(request: NextRequest) {
+  let user;
+  let topic;
   try {
+    user = await requireAuth();
+
+    // Check rate limit
+    await checkRateLimit(`ai:${user.id}`, aiRateLimiter);
+
     const body = await request.json();
-    const { topic, tone, category, length } = body;
+    const data = generateSchema.parse(body);
+    topic = data.topic; // Assign topic here for logging in catch block
+    const { tone, category, length } = data;
 
-    // Validate input
-    if (!topic || typeof topic !== 'string') {
-      return NextResponse.json(
-        { error: 'Topic is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log(`Generating post for topic: "${topic}"`);
+    logger.info('Generating post', { userId: user.id, topic });
 
     // Step 1: Create embedding from user topic
-    console.log('Creating query embedding...');
+    logger.info('Creating query embedding...');
     const queryEmbedding = await createEmbedding(topic);
 
     // Step 2: Perform vector search for similar viral posts
-    console.log('Searching for similar viral posts...');
+    logger.info('Searching for similar viral posts...');
     const similarPosts = await searchSimilarPosts(queryEmbedding, {
       limit: 10,
       minSimilarity: 0.6,
@@ -43,67 +66,59 @@ export async function POST(request: NextRequest) {
 
     if (similarPosts.length === 0) {
       // Fallback: get diverse top posts if no similar ones found
-      console.log('No similar posts found, using top diverse posts...');
+      logger.info('No similar posts found, using top diverse posts...');
       const { getTopDiversePosts } = await import('@/lib/vector-search');
       const diversePosts = await getTopDiversePosts(10);
       similarPosts.push(...diversePosts);
     }
 
-    console.log(`Found ${similarPosts.length} reference posts`);
+    logger.info(`Found ${similarPosts.length} reference posts`);
 
     // Step 3: Extract patterns from similar posts
-    console.log('Extracting patterns...');
+    logger.info('Extracting patterns...');
     const patterns = extractPostPatterns(similarPosts);
     const styleGuide = generateStyleGuide(patterns);
 
-    // Step 4: Build RAG-enhanced prompt
+    // Step 4: Build RAG-enhanced prompt using LinkedIn-optimized prompts
+    const { buildLinkedInPrompt } = await import('@/lib/prompts/linkedin');
+
     const examplePosts = similarPosts
       .slice(0, 3)
-      .map((p, i) => `Example ${i + 1} (Score: ${p.viralScore}):\n${p.text}`)
+      .map((p, i) => `**Example ${i + 1}** (Engagement Score: ${p.viralScore}):\n${p.text}`)
       .join('\n\n---\n\n');
 
-    const prompt = `You are an expert LinkedIn content creator. Generate a high-performing LinkedIn post based on the following:
+    const { system: systemPrompt, user: userPrompt } = buildLinkedInPrompt({
+      topic,
+      tone: (tone as any) || 'PROFESSIONAL',
+      intensity: (length === 'short' ? 'LOW' : length === 'long' ? 'HIGH' : 'MEDIUM') as any,
+      category: category || undefined,
+      patterns: {
+        avgLength: patterns.avgLength,
+        commonHooks: patterns.commonHooks,
+        avgViralScore: patterns.avgViralScore,
+        usesEmojis: patterns.usesEmojis,
+        hasCTA: patterns.hasCTA,
+        avgParagraphs: patterns.avgParagraphs,
+      },
+      examplePosts,
+    });
 
-**Topic:** ${topic}
-
-**Desired Tone:** ${tone || 'professional yet engaging'}
-**Desired Category:** ${category || 'general professional content'}
-**Target Length:** ${length || 'medium (200-400 words)'}
-
-${styleGuide}
-
-**Reference Examples from Top-Performing Posts:**
-
-${examplePosts}
-
-**Instructions:**
-1. Create an original post that captures the essence of the topic
-2. Follow the writing patterns and structure from the examples
-3. Match the desired tone and category
-4. Use hooks similar to: ${patterns.commonHooks.join(', ')}
-5. ${patterns.usesEmojis ? 'Include strategic emoji use' : 'Keep it professional without emojis'}
-6. ${patterns.hasCTA > 50 ? 'Include a clear call-to-action' : 'Keep it conversational'}
-7. Aim for approximately ${patterns.avgLength} characters
-8. Use ${patterns.avgParagraphs} paragraphs with clear spacing
-
-Generate only the post content, without any meta-commentary or labels.`;
-
-    // Step 5: Call OpenAI to generate the post
-    console.log('Generating post with AI...');
-    const completion = await openai.chat.completions.create({
+    // Step 5: Call OpenAI to generate the post with enhanced prompts
+    logger.info('Generating post with AI...');
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: 'You are a professional LinkedIn content creator who writes viral posts.',
+          content: systemPrompt,
         },
         {
           role: 'user',
-          content: prompt,
+          content: userPrompt,
         },
       ],
       temperature: 0.8,
-      max_tokens: 800,
+      max_tokens: 1000,
     });
 
     const generatedPost = completion.choices[0].message.content?.trim() || '';
@@ -113,7 +128,7 @@ Generate only the post content, without any meta-commentary or labels.`;
     }
 
     // Step 6: Save generation log
-    console.log('Saving generation log...');
+    logger.info('Saving generation log...');
     try {
       await prisma.$executeRaw`
         CREATE TABLE IF NOT EXISTS generation_logs (
@@ -145,11 +160,11 @@ Generate only the post content, without any meta-commentary or labels.`;
         )
       `;
     } catch (logError) {
-      console.error('Failed to save generation log:', logError);
+      logger.error('Failed to save generation log', logError as Error);
       // Continue even if logging fails
     }
 
-    console.log('Post generated successfully');
+    logger.info('Post generated successfully', { userId: user.id, topic });
 
     // Return generated post with metadata
     return NextResponse.json({
@@ -171,15 +186,25 @@ Generate only the post content, without any meta-commentary or labels.`;
       },
     });
 
-  } catch (error) {
-    console.error('Error generating post:', error);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: {
+            message: error.issues[0].message,
+            code: 'VALIDATION_ERROR',
+            statusCode: 400,
+          },
+        },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(
-      {
-        error: 'Failed to generate post',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('Error generating post', error as Error, { topic });
+
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, {
+      status: errorResponse.error.statusCode,
+    });
   }
 }

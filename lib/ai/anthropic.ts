@@ -7,9 +7,19 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Tone, Intensity } from '@prisma/client';
 import logger, { loggers } from '../logger';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+let anthropic: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropic) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropic;
+}
 
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
 
@@ -30,7 +40,7 @@ export async function generatePost(params: {
   const startTime = Date.now();
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await getAnthropicClient().messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 1024,
       temperature: getTemperature(intensity),
@@ -72,7 +82,7 @@ export async function extractTextFromImage(imageUrl: string): Promise<string> {
     const base64 = Buffer.from(arrayBuffer).toString('base64');
     const mediaType = response.headers.get('content-type') || 'image/jpeg';
 
-    const message = await anthropic.messages.create({
+    const message = await getAnthropicClient().messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 1024,
       messages: [

@@ -1,16 +1,18 @@
 import { prisma } from './prisma';
+import logger from './logger';
 
 /**
  * Viral post type returned from vector search
  */
 export interface ViralPostResult {
   id: string;
-  text: string;
-  author: string;
-  category: string;
-  tone: string;
-  hookStyle: string;
-  viralScore: number;
+  post_id: string;
+  text: string;  // mapped from content
+  author: string;  // mapped from author_name
+  category: string;  // mapped from topic_category
+  tone: string;  // mapped from tone_detected
+  hookStyle: string;  // derived or empty
+  viralScore: number;  // mapped from engagement_score
   similarity: number;
 }
 
@@ -56,12 +58,12 @@ export async function searchSimilarPosts(
     const params: any[] = [embeddingStr, limit];
 
     if (category) {
-      whereClause += ' AND category = $3';
+      whereClause += ' AND topic_category = $3';
       params.push(category);
     }
 
     if (tone) {
-      whereClause += ` AND tone = $${params.length + 1}`;
+      whereClause += ` AND tone_detected = $${params.length + 1}`;
       params.push(tone);
     }
 
@@ -70,12 +72,13 @@ export async function searchSimilarPosts(
     const query = `
       SELECT
         id::text,
-        text,
-        author,
-        category,
-        tone,
-        hook_style as "hookStyle",
-        viral_score as "viralScore",
+        post_id,
+        content as text,
+        COALESCE(author_name, 'Unknown') as author,
+        COALESCE(topic_category, 'General') as category,
+        COALESCE(tone_detected, 'Professional') as tone,
+        'Standard' as "hookStyle",
+        COALESCE(engagement_score, 0)::float as "viralScore",
         1 - (embedding <=> $1::vector) as similarity
       FROM viral_posts
       WHERE embedding IS NOT NULL
@@ -90,7 +93,7 @@ export async function searchSimilarPosts(
     return results;
 
   } catch (error) {
-    console.error('Error in vector search:', error);
+    logger.error('Error in vector search:', error as Error);
     throw new Error(`Vector search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -109,7 +112,7 @@ export async function searchByText(
     const embedding = await createEmbedding(text);
     return await searchSimilarPosts(embedding, options);
   } catch (error) {
-    console.error('Error searching by text:', error);
+    logger.error('Error searching by text:', error as Error);
     throw new Error(`Text search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -123,17 +126,18 @@ export async function getTopDiversePosts(limit: number = 20): Promise<ViralPostR
       WITH ranked_posts AS (
         SELECT
           id::text,
-          text,
-          author,
-          category,
-          tone,
-          hook_style as "hookStyle",
-          viral_score as "viralScore",
-          0 as similarity,
-          ROW_NUMBER() OVER (PARTITION BY category, tone ORDER BY viral_score DESC) as rn
+          post_id,
+          content as text,
+          COALESCE(author_name, 'Unknown') as author,
+          COALESCE(topic_category, 'General') as category,
+          COALESCE(tone_detected, 'Professional') as tone,
+          'Standard' as "hookStyle",
+          COALESCE(engagement_score, 0)::float as "viralScore",
+          0::float as similarity,
+          ROW_NUMBER() OVER (PARTITION BY topic_category, tone_detected ORDER BY engagement_score DESC) as rn
         FROM viral_posts
       )
-      SELECT id, text, author, category, tone, "hookStyle", "viralScore", similarity
+      SELECT id, post_id, text, author, category, tone, "hookStyle", "viralScore", similarity
       FROM ranked_posts
       WHERE rn <= 2
       ORDER BY "viralScore" DESC
@@ -144,7 +148,7 @@ export async function getTopDiversePosts(limit: number = 20): Promise<ViralPostR
     return results;
 
   } catch (error) {
-    console.error('Error getting diverse posts:', error);
+    logger.error('Error getting diverse posts:', error as Error);
     throw new Error(`Failed to get diverse posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

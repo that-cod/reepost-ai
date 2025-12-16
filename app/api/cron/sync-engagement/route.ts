@@ -72,9 +72,8 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const linkedInAccount = post.user.accounts.find(
-          (acc) => acc.provider === 'linkedin'
-        );
+        // Get LinkedIn account (already filtered by provider in query)
+        const linkedInAccount = post.user.accounts[0];
 
         if (!linkedInAccount?.access_token || !post.linkedInPostId) {
           results.skipped++;
@@ -98,44 +97,47 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Update analytics record
-        await prisma.analytics.upsert({
+        // Find or create analytics record for today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const existingAnalytics = await prisma.analytics.findFirst({
           where: {
-            userId_postId_date: {
-              userId: post.userId,
-              postId: post.id,
-              date: new Date(),
-            },
-          },
-          create: {
             userId: post.userId,
             postId: post.id,
-            eventType: 'POST_ENGAGEMENT',
-            date: new Date(),
-            likes: analytics.likes,
-            comments: analytics.comments,
-            shares: analytics.shares,
-            views: analytics.views,
-            engagementRate:
-              analytics.views > 0
-                ? ((analytics.likes + analytics.comments + analytics.shares) /
-                    analytics.views) *
-                  100
-                : 0,
-          },
-          update: {
-            likes: analytics.likes,
-            comments: analytics.comments,
-            shares: analytics.shares,
-            views: analytics.views,
-            engagementRate:
-              analytics.views > 0
-                ? ((analytics.likes + analytics.comments + analytics.shares) /
-                    analytics.views) *
-                  100
-                : 0,
+            date: today,
           },
         });
+
+        const analyticsData = {
+          eventType: 'POST_ENGAGEMENT' as const,
+          likes: analytics.likes,
+          comments: analytics.comments,
+          shares: analytics.shares,
+          views: analytics.views,
+          engagementRate:
+            analytics.views > 0
+              ? ((analytics.likes + analytics.comments + analytics.shares) /
+                analytics.views) *
+              100
+              : 0,
+        };
+
+        if (existingAnalytics) {
+          await prisma.analytics.update({
+            where: { id: existingAnalytics.id },
+            data: analyticsData,
+          });
+        } else {
+          await prisma.analytics.create({
+            data: {
+              userId: post.userId,
+              postId: post.id,
+              date: today,
+              ...analyticsData,
+            },
+          });
+        }
 
         results.synced++;
       } catch (error: any) {

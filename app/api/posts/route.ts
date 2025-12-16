@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       embedding = await generateEmbedding(content);
     }
 
-    // Create post
+    // Create post (excluding embedding which needs raw SQL)
     const post = await prisma.post.create({
       data: {
         userId: user.id,
@@ -142,12 +142,21 @@ export async function POST(req: NextRequest) {
         aiModel: aiModel,
         generatedFrom: data.context,
         embeddingModel: embedding ? 'text-embedding-3-small' : undefined,
-        embedding: embedding ? `[${embedding.join(',')}]` : undefined,
         status: data.scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
         scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
         mediaUrls: data.mediaUrls || [],
       },
     });
+
+    // Update embedding using raw SQL if available
+    if (embedding) {
+      const embeddingStr = `[${embedding.join(',')}]`;
+      await prisma.$executeRaw`
+        UPDATE "Post" 
+        SET embedding = ${embeddingStr}::vector 
+        WHERE id = ${post.id}
+      `;
+    }
 
     // Log analytics
     await prisma.analytics.create({
@@ -167,7 +176,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: {
-            message: error.errors[0].message,
+            message: error.issues[0].message,
             code: 'VALIDATION_ERROR',
             statusCode: 400,
           },

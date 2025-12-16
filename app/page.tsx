@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Upload, Mic, FileText, Wand2 } from "lucide-react";
 import toast from "react-hot-toast";
 import ToneModal from "@/components/modals/ToneModal";
@@ -16,6 +18,9 @@ const suggestedTopics = [
 ];
 
 export default function GeneratePage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<"your-topic" | "suggested">("your-topic");
   const [topic, setTopic] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -33,7 +38,14 @@ export default function GeneratePage() {
     }
   };
 
-  const handleGeneratePost = () => {
+  const handleGeneratePost = async () => {
+    // Check if user is authenticated
+    if (status !== "authenticated") {
+      toast.error("Please sign in to generate posts");
+      router.push("/auth/signin?callbackUrl=/");
+      return;
+    }
+
     if (topic.trim().split(" ").length < 5) {
       toast.error("Please enter at least 5 words for your topic");
       return;
@@ -41,24 +53,38 @@ export default function GeneratePage() {
 
     setIsGenerating(true);
 
-    // Simulate AI generation
-    setTimeout(() => {
-      const samplePost = `🚀 ${topic}
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          tone: selectedTone.toUpperCase(),
+          length: toneIntensity < 33 ? "short" : toneIntensity < 66 ? "medium" : "long",
+        }),
+      });
 
-I've been thinking a lot about this lately, and here's what I've learned:
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to generate post");
+      }
 
-→ The landscape is changing faster than ever
-→ Innovation requires both courage and consistency
-→ Success is built on meaningful connections
+      const data = await response.json();
 
-What's been your experience with this? I'd love to hear your thoughts in the comments.
-
-#ContentCreation #AI #Innovation #Growth`;
-
-      setGeneratedPost(samplePost);
+      if (data.success && data.post) {
+        setGeneratedPost(data.post);
+        toast.success("Post generated successfully!");
+      } else {
+        throw new Error("No content generated");
+      }
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate post");
+    } finally {
       setIsGenerating(false);
-      toast.success("Post generated successfully!");
-    }, 2000);
+    }
   };
 
   const handleSuggestedTopic = (suggestedTopic: string) => {
@@ -85,17 +111,15 @@ What's been your experience with this? I'd love to hear your thoughts in the com
           <div className="flex space-x-6 border-b border-border">
             <button
               onClick={() => setActiveTab("your-topic")}
-              className={`pb-3 px-1 transition-all ${
-                activeTab === "your-topic" ? "tab-active" : "tab-inactive"
-              }`}
+              className={`pb-3 px-1 transition-all ${activeTab === "your-topic" ? "tab-active" : "tab-inactive"
+                }`}
             >
               Your Topic
             </button>
             <button
               onClick={() => setActiveTab("suggested")}
-              className={`pb-3 px-1 transition-all ${
-                activeTab === "suggested" ? "tab-active" : "tab-inactive"
-              }`}
+              className={`pb-3 px-1 transition-all ${activeTab === "suggested" ? "tab-active" : "tab-inactive"
+                }`}
             >
               Suggested Topics
             </button>

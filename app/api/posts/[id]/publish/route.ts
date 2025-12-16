@@ -17,8 +17,10 @@ import { checkRateLimit, publishRateLimiter } from '@/lib/ratelimit';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   try {
     const user = await requireAuth();
 
@@ -27,7 +29,7 @@ export async function POST(
 
     // Get post
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!post) {
@@ -59,7 +61,7 @@ export async function POST(
 
     // Update post status
     const updatedPost = await prisma.post.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: PostStatus.PUBLISHED,
         publishedAt: new Date(),
@@ -88,7 +90,7 @@ export async function POST(
     // Update post status to failed
     try {
       await prisma.post.update({
-        where: { id: params.id },
+        where: { id },
         data: { status: PostStatus.FAILED },
       });
     } catch (updateError) {

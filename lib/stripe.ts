@@ -8,10 +8,29 @@ import { Plan } from '@prisma/client';
 import prisma from './prisma';
 import logger, { loggers } from './logger';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
-});
+let stripeClient: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!stripeClient) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-10-29.clover',
+      typescript: true,
+    });
+  }
+  return stripeClient;
+}
+
+// Export for backwards compatibility (use getStripe() instead)
+export const stripe = {
+  get customers() { return getStripe().customers; },
+  get subscriptions() { return getStripe().subscriptions; },
+  get checkout() { return getStripe().checkout; },
+  get billingPortal() { return getStripe().billingPortal; },
+  get webhooks() { return getStripe().webhooks; },
+};
 
 /**
  * Create Stripe customer
@@ -73,7 +92,7 @@ export async function createCheckoutSession(params: {
     }
 
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer: customerId || undefined,
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [

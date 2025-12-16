@@ -20,29 +20,34 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   providers: [
-    LinkedInProvider({
-      clientId: process.env.LINKEDIN_CLIENT_ID!,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-      client: {
-        token_endpoint_auth_method: 'client_secret_post',
-      },
-      issuer: 'https://www.linkedin.com',
-      jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
-      authorization: {
-        params: {
-          scope: 'openid profile email w_member_social',
-        },
-      },
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          linkedInId: profile.sub,
-        };
-      },
-    }),
+    // Only add LinkedIn provider if credentials are configured
+    ...(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET
+      ? [
+        LinkedInProvider({
+          clientId: process.env.LINKEDIN_CLIENT_ID,
+          clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+          client: {
+            token_endpoint_auth_method: 'client_secret_post',
+          },
+          issuer: 'https://www.linkedin.com',
+          jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
+          authorization: {
+            params: {
+              scope: 'openid profile email',
+            },
+          },
+          profile(profile) {
+            return {
+              id: profile.sub,
+              name: profile.name,
+              email: profile.email,
+              image: profile.picture,
+              linkedInId: profile.sub,
+            };
+          },
+        }),
+      ]
+      : []),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -123,6 +128,18 @@ export const authOptions: NextAuthOptions = {
           },
         },
       });
+    },
+    async signOut({ token }) {
+      // Log sign out
+      if (token?.id) {
+        await prisma.auditLog.create({
+          data: {
+            userId: token.id as string,
+            action: 'SIGN_OUT',
+            resource: 'AUTH',
+          },
+        });
+      }
     },
   },
 };

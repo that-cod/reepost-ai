@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
                 provider: 'linkedin',
               },
               select: {
+                provider: true,
                 access_token: true,
               },
             },
@@ -58,10 +59,8 @@ export async function POST(req: NextRequest) {
 
     for (const post of scheduledPosts) {
       try {
-        // Check if user has LinkedIn connection
-        const linkedInAccount = post.user.accounts.find(
-          (acc) => acc.provider === 'linkedin'
-        );
+        // Get LinkedIn account (already filtered by provider in query)
+        const linkedInAccount = post.user.accounts[0];
 
         if (!linkedInAccount?.access_token || !post.user.linkedInUrn) {
           throw new Error('LinkedIn connection required');

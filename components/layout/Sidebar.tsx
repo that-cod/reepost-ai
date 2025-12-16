@@ -67,7 +67,7 @@ export default function Sidebar() {
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-pink-500 rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-text-primary">EasyGen</span>
+          <span className="text-xl font-bold text-text-primary">Reepost.ai</span>
         </Link>
       </div>
 
@@ -81,11 +81,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                isActive
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-text-secondary hover:bg-card-bg hover:text-text-primary"
-              }`}
+                }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
               <span>{item.name}</span>

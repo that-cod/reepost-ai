@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: {
-            message: error.errors[0].message,
+            message: error.issues[0].message,
             code: 'VALIDATION_ERROR',
             statusCode: 400,
           },

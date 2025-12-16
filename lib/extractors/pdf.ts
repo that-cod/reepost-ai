@@ -2,8 +2,8 @@
  * PDF Text Extraction
  */
 
-import pdfParse from 'pdf-parse';
-import logger, { loggers } from '../logger';
+const pdfParse = require('pdf-parse');
+import { loggers } from '../logger';
 
 /**
  * Extract text from PDF buffer

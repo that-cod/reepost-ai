@@ -133,10 +133,20 @@ async function uploadMediaToLinkedIn(
       }
     );
 
-    const uploadUrl = registerResponse.data.value.uploadMechanism[
+    const uploadMechanism = registerResponse.data?.value?.uploadMechanism?.[
       'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
-    ].uploadUrl;
-    const asset = registerResponse.data.value.asset;
+    ];
+
+    if (!uploadMechanism?.uploadUrl) {
+      throw new Error('Failed to get upload URL from LinkedIn');
+    }
+
+    const uploadUrl = uploadMechanism.uploadUrl;
+    const asset = registerResponse.data?.value?.asset;
+
+    if (!asset) {
+      throw new Error('Failed to get asset from LinkedIn response');
+    }
 
     // Download media
     const mediaResponse = await axios.get(mediaUrl, {

@@ -56,9 +56,10 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // LinkedIn specific
-  linkedInId       String?  @unique
-  linkedInUsername String?
-  linkedInUrn      String? // LinkedIn URN for API calls
+  linkedInId         String?  @unique
+  linkedInUsername   String?
+  linkedInUrn        String? // LinkedIn URN for API calls
+  linkedInProfileUrl String? // User's LinkedIn profile URL
 
   // Subscription & Billing
   stripeCustomerId       String?   @unique
@@ -163,16 +164,25 @@ model SavedPost {
 // ============================================================================
 
 model ViralPost {
-  id          String   @id @default(uuid()) @db.Uuid
-  text        String   @db.Text
-  author      String   @db.Text
-  category    String   @db.Text
-  tone        String   @db.Text
-  hookStyle   String   @map("hook_style") @db.Text
-  viralScore  Float    @map("viral_score") @db.Real
-  embedding   Unsupported("vector(1536)")?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id               String                 @unique @db.VarChar(255)
+  content               String
+  embedding             Unsupported("vector")?
+  author_name           String?                @db.VarChar(255)
+  author_profile_url    String?
+  author_follower_count Int?
+  likes                 Int?                   @default(0)
+  comments              Int?                   @default(0)
+  reposts               Int?                   @default(0)
+  engagement_score      Int?                   @default(0)
+  tone_detected         String?                @db.VarChar(50)
+  topic_category        String?                @db.VarChar(100)
+  posted_date           DateTime?              @db.Timestamptz(6)
+  post_url              String?
+  createdAt             DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  @@index([engagement_score(sort: Desc)], map: "idx_engagement")
+  @@index([tone_detected], map: "idx_tone")
   @@map("viral_posts")
 }
 
@@ -222,14 +232,27 @@ model Settings {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Profile preferences
+  timezone        String   @default("America/New_York")
+  jobDescriptions String[] @default([])
+
   // Publishing preferences
   autoPublish         Boolean @default(false)
   defaultScheduleTime String  @default("09:00") // HH:mm format
 
   // AI preferences
-  preferredAiProvider String  @default("openai") // "openai" or "anthropic"
-  defaultTone         Tone    @default(PROFESSIONAL)
+  preferredAiProvider String    @default("openai") // "openai" or "anthropic"
+  defaultTone         Tone      @default(PROFESSIONAL)
   defaultIntensity    Intensity @default(MEDIUM)
+  aiToneText          String?   // Custom AI tone description
+  contentLength       String    @default("medium") // "short", "medium", "long"
+  emojiUsage          String    @default("moderate") // "minimal", "moderate", "frequent"
+  hashtagCount        String    @default("3-5") // "none", "1-2", "3-5", "6+"
+
+  // Content guidelines
+  avoidControversial    Boolean @default(true)
+  professionalLanguage  Boolean @default(true)
+  includeCTA            Boolean @default(false)
 
   // Notification preferences
   emailNotifications      Boolean @default(true)
@@ -244,6 +267,7 @@ model Settings {
 
   @@index([userId])
 }
+
 
 // ============================================================================
 // BILLING & SUBSCRIPTIONS

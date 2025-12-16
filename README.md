@@ -1,8 +1,8 @@
-# EasyGen - AI-Powered Content Generation Platform
+# Reepost.ai - AI-Powered LinkedIn Content Generator
 
-A modern, polished SaaS web application for generating, editing, scheduling, and managing LinkedIn-style content using AI.
+A modern SaaS platform for generating viral LinkedIn posts using AI. Create, schedule, and manage professional content effortlessly.
 
-![EasyGen Platform](https://img.shields.io/badge/Next.js-15.0-black?style=for-the-badge&logo=next.js)
+![Reepost.ai Platform](https://img.shields.io/badge/Next.js-15.0-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue?style=for-the-badge&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?style=for-the-badge&logo=tailwind-css)
 
@@ -18,7 +18,7 @@ A modern, polished SaaS web application for generating, editing, scheduling, and
 
 ### Design Highlights
 - Clean, modern interface with soft shadows and rounded corners
-- Coral-pink (#FF6B81) accent color for CTAs and highlights
+- Green (#00be61) accent color for CTAs and highlights
 - Responsive grid layout for mobile and desktop
 - Smooth animations and transitions
 - Toast notifications for user feedback
@@ -138,8 +138,8 @@ easygen-claude/
 Update the primary colors in `tailwind.config.ts`:
 ```typescript
 colors: {
-  primary: "#FF6B81",          // Main accent color
-  "primary-dark": "#E55570",   // Hover state
+  primary: "#00be61",          // Main accent color
+  "primary-dark": "#00a854",   // Hover state
   // ... other colors
 }
 ```
@@ -204,7 +204,7 @@ This project is licensed under the MIT License.
 
 ## Acknowledgments
 
-- Design inspiration from Notion, Figma, and EasyGen
+- Design inspiration from Notion and Figma
 - Icons from [Lucide](https://lucide.dev)
 - Fonts from Google Fonts (Inter & Poppins)
 

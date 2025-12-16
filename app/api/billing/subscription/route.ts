@@ -65,11 +65,12 @@ export async function DELETE(req: NextRequest) {
     }
 
     const subscription = await cancelSubscription(dbUser.stripeSubscriptionId);
+    const sub = subscription as any;
 
     return NextResponse.json({
       success: true,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      currentPeriodEnd: subscription.current_period_end,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd: sub.current_period_end,
     });
   } catch (error) {
     const errorResponse = formatErrorResponse(error as Error);

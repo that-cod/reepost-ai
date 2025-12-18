@@ -16,7 +16,7 @@ function ErrorContent() {
         },
         AccessDenied: {
             title: "Access Denied",
-            description: "You do not have permission to sign in.",
+            description: "Your LinkedIn profile may be missing required information. Please ensure your email is visible in your LinkedIn privacy settings.",
         },
         Verification: {
             title: "Verification Failed",
@@ -24,15 +24,15 @@ function ErrorContent() {
         },
         OAuthSignin: {
             title: "OAuth Error",
-            description: "Error starting the OAuth sign-in process.",
+            description: "Error starting the OAuth sign-in process. Please try again.",
         },
         OAuthCallback: {
             title: "OAuth Callback Error",
-            description: "Error during the OAuth callback.",
+            description: "Error during the OAuth callback. This may be due to missing profile information.",
         },
         OAuthCreateAccount: {
             title: "Account Creation Error",
-            description: "Could not create your account using OAuth.",
+            description: "Could not create your account using OAuth. Your LinkedIn profile must include a visible email address.",
         },
         EmailCreateAccount: {
             title: "Account Creation Error",
@@ -45,6 +45,10 @@ function ErrorContent() {
         OAuthAccountNotLinked: {
             title: "Account Not Linked",
             description: "This email is already associated with another account. Try signing in with a different method.",
+        },
+        DatabaseError: {
+            title: "Database Error",
+            description: "A database error occurred. Please try again later or contact support if the issue persists.",
         },
         default: {
             title: "Authentication Error",

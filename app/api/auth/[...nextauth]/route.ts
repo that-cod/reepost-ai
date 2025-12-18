@@ -1,5 +1,7 @@
 /**
  * NextAuth API Route Handler
+ * Note: The handler must be exported directly for Next.js 13+ App Router
+ * Wrapping it causes req.query to be undefined
  */
 
 import NextAuth from 'next-auth';

@@ -29,10 +29,15 @@ function SignInForm() {
                 OAuthCallback: "Error during OAuth callback",
                 OAuthCreateAccount: "Could not create OAuth account",
                 EmailCreateAccount: "Could not create email account",
-                Callback: "Error during callback",
-                OAuthAccountNotLinked: "Email already linked to another account",
+                Callback: "Error during callback - please try again",
+                OAuthAccountNotLinked: "Email already linked to another account. Try signing in with your original method.",
                 CredentialsSignin: "Invalid email or password",
-                default: "An error occurred during sign-in",
+                EmailSignin: "Error sending verification email",
+                SessionRequired: "Please sign in to continue",
+                Configuration: "LinkedIn sign-in is not properly configured. Please contact support.",
+                AccessDenied: "Access denied. Your LinkedIn profile may be missing required information (email).",
+                Verification: "Verification link expired or invalid",
+                default: "An error occurred during sign-in. Please try again.",
             };
             toast.error(errorMessages[error] || errorMessages.default);
         }
@@ -95,22 +100,15 @@ function SignInForm() {
     const handleLinkedInSignIn = async () => {
         setIsLoading(true);
         try {
-            const result = await signIn("linkedin", {
+            // Let NextAuth handle the redirect automatically
+            await signIn("linkedin", {
                 callbackUrl,
-                redirect: false
+                redirect: true  // Changed to true - NextAuth will handle the redirect
             });
-
-            if (result?.error) {
-                toast.error(result.error === "Configuration"
-                    ? "LinkedIn sign-in is not configured. Please contact support."
-                    : "Failed to sign in with LinkedIn. Please try again."
-                );
-                setIsLoading(false);
-            } else if (result?.url) {
-                window.location.href = result.url;
-            }
+            // If redirect is true, this code won't execute as the page will redirect
         } catch (error: any) {
-            toast.error("An error occurred during LinkedIn sign-in");
+            console.error("LinkedIn sign-in error:", error);
+            toast.error("An error occurred during LinkedIn sign-in. Please try again.");
             setIsLoading(false);
         }
     };

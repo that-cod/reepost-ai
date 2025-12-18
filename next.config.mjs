@@ -9,6 +9,32 @@ const nextConfig = {
   // Set the correct workspace root to silence multiple lockfile warning
   outputFileTracingRoot: path.join(__dirname, './'),
 
+  // Empty turbopack config to silence Next.js 16 warning
+  turbopack: {},
+
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+
   // Webpack configuration for server-side dependencies
   webpack: (config, { isServer }) => {
     if (isServer) {

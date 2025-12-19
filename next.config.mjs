@@ -35,6 +35,24 @@ const nextConfig = {
     ];
   },
 
+  // Optional: Redirect from root domain to app subdomain
+  // Uncomment if you want repostai.io to redirect to app.repostai.io
+  // async redirects() {
+  //   return [
+  //     {
+  //       source: '/:path*',
+  //       has: [
+  //         {
+  //           type: 'host',
+  //           value: 'repostai.io',
+  //         },
+  //       ],
+  //       destination: 'https://app.repostai.io/:path*',
+  //       permanent: true,
+  //     },
+  //   ];
+  // },
+
   // Webpack configuration for server-side dependencies
   webpack: (config, { isServer }) => {
     if (isServer) {

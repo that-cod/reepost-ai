@@ -33,6 +33,7 @@ export default withAuth(
 
         // Protected pages
         const protectedPaths = [
+          '/generate',
           '/trending',
           '/calendar',
           '/engagement',

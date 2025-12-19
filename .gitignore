@@ -37,3 +37,11 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# logs
+/logs
+logs/
+*.log
+
+# separate landing page project
+/repost-ai-landing

@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 function SignInForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const callbackUrl = searchParams.get("callbackUrl") || "/generate";
     const error = searchParams.get("error");
 
     const [isLoading, setIsLoading] = useState(false);

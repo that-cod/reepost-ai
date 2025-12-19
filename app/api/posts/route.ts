@@ -13,6 +13,7 @@ import { checkRateLimit, aiRateLimiter } from '@/lib/ratelimit';
 import { generatePost, generateEmbedding } from '@/lib/ai';
 import { PostStatus, Tone, Intensity } from '@prisma/client';
 import logger from '@/lib/logger';
+import { updateExpiredScheduledPosts } from '@/lib/posts/updateScheduledPosts';
 
 /**
  * GET /api/posts - List posts
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireAuth();
     const { searchParams } = new URL(req.url);
+
+    // Update any expired scheduled posts to published before fetching
+    await updateExpiredScheduledPosts();
 
     const status = searchParams.get('status') as PostStatus | null;
     const limit = parseInt(searchParams.get('limit') || '20');

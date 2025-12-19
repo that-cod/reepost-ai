@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/sync-engagement",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/update-scheduled-posts",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

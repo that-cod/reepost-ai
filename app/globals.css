@@ -128,3 +128,21 @@
 .dark .btn-secondary {
   @apply bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-100;
 }
+
+/* Landing Page Styles - Glassmorphism */
+.glass-card {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+}
+
+.glass-nav {
+  @apply bg-black/20 backdrop-blur-lg border-b border-white/10;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400;
+}
+
+.primary-glow {
+  box-shadow: 0 0 40px -10px rgba(34, 197, 94, 0.4);
+}
+

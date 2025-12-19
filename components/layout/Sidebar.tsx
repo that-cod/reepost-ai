@@ -16,7 +16,7 @@ import {
 const menuItems = [
   {
     name: "Generate Post",
-    href: "/",
+    href: "/generate",
     icon: Sparkles,
   },
   {
@@ -82,8 +82,8 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-text-secondary hover:bg-card-bg hover:text-text-primary"
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-text-secondary hover:bg-card-bg hover:text-text-primary"
                 }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />

@@ -1,0 +1,158 @@
+================================================================================
+CSV DATA ANALYSIS REPORT
+================================================================================
+
+[DATASET OVERVIEW]
+--------------------------------------------------------------------------------
+Total Posts: 11,442
+Total Columns: 20
+Date Range: 2019-01-11 to 2025-12-03
+Unique Authors: 236
+
+[SCHEMA DETAILS]
+--------------------------------------------------------------------------------
+post_id                   | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+content                   | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+author_name               | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+author_username           | object     | Non-Null: 10,985 | Missing:   457 ( 3.99%)
+author_headline           | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+author_profile_url        | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+likes                     | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+comments                  | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+reposts                   | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+engagement_score          | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+word_count                | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+hashtags                  | object     | Non-Null:  1,601 | Missing: 9,841 (86.01%)
+has_question              | bool       | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+has_cta                   | bool       | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+posted_date_iso           | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+posted_day_of_week        | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+posted_hour               | int64      | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+post_url                  | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+post_type                 | object     | Non-Null: 11,442 | Missing:     0 ( 0.00%)
+media_type                | object     | Non-Null:  8,149 | Missing: 3,293 (28.78%)
+
+[ENGAGEMENT STATISTICS]
+--------------------------------------------------------------------------------
+Average Likes:                830.43
+Median Likes:                 224.00
+Max Likes:                   130,566
+
+Average Comments:             200.29
+Median Comments:              134.00
+Max Comments:                  8,615
+
+Average Reposts:               92.51
+Median Reposts:                15.00
+Max Reposts:                  14,275
+
+Average Engagement Score:    1893.84
+Median Engagement Score:      784.00
+Max Engagement Score:        195,821
+
+[CONTENT STATISTICS]
+--------------------------------------------------------------------------------
+Average Word Count:           186.75
+Median Word Count:            167.00
+Max Word Count:                  552
+Min Word Count:                    1
+
+Posts with Questions:          6,810 (59.52%)
+Posts with CTA:                8,868 (77.50%)
+Posts with Hashtags:           1,601 (13.99%)
+
+[POST TYPE DISTRIBUTION]
+--------------------------------------------------------------------------------
+regular             :  9,832 (85.93%)
+repost              :  1,519 (13.28%)
+quote               :     91 ( 0.80%)
+
+[MEDIA TYPE DISTRIBUTION]
+--------------------------------------------------------------------------------
+image               :  5,957 (52.06%)
+None/Text Only      :  3,293 (28.78%)
+video               :  2,141 (18.71%)
+images              :     51 ( 0.45%)
+
+[POSTING SCHEDULE - DAY OF WEEK]
+--------------------------------------------------------------------------------
+Monday         :  1,785 (15.60%)
+Tuesday        :  1,848 (16.15%)
+Wednesday      :  1,822 (15.92%)
+Thursday       :  1,790 (15.64%)
+Friday         :  1,805 (15.78%)
+Saturday       :  1,208 (10.56%)
+Sunday         :  1,184 (10.35%)
+
+[POSTING SCHEDULE - HOUR OF DAY]
+--------------------------------------------------------------------------------
+ 0:00 |     8 ( 0.07%)
+ 1:00 |    12 ( 0.10%)
+ 2:00 |     9 ( 0.08%)
+ 3:00 |   118 ( 1.03%)
+ 4:00 |   189 ( 1.65%)
+ 5:00 |   390 ( 3.41%)
+ 6:00 |   299 ( 2.61%)
+ 7:00 |   452 ( 3.95%)
+ 8:00 |   944 ( 8.25%)
+ 9:00 |   773 ( 6.76%)
+10:00 | 1,269 (11.09%)
+11:00 | 1,679 (14.67%)
+12:00 | 1,900 (16.61%)
+13:00 |   960 ( 8.39%)
+14:00 |   587 ( 5.13%)
+15:00 |   443 ( 3.87%)
+16:00 |   588 ( 5.14%)
+17:00 |   352 ( 3.08%)
+18:00 |   195 ( 1.70%)
+19:00 |    87 ( 0.76%)
+20:00 |    89 ( 0.78%)
+21:00 |    52 ( 0.45%)
+22:00 |    26 ( 0.23%)
+23:00 |    21 ( 0.18%)
+
+[TOP 10 AUTHORS BY POST COUNT]
+--------------------------------------------------------------------------------
+ 1. Adam Biddlecombe                        : 1,028 posts
+ 2. Chris Donnelly                          :  979 posts
+ 3. Ruben Hassid                            :  927 posts
+ 4. Manthan Patel                           :  788 posts
+ 5. Charlie Hills                           :  776 posts
+ 6. Will McTighe                            :  745 posts
+ 7. Matt Village                            :  712 posts
+ 8. MJ Jaindl                               :  628 posts
+ 9. Michel Lieben 🧠                         :  621 posts
+10. Fatima Khan                             :  618 posts
+
+[AVERAGE ENGAGEMENT BY POST TYPE]
+--------------------------------------------------------------------------------
+            likes  comments  reposts  engagement_score
+post_type                                             
+quote       28.04     14.58     0.76             75.58
+regular    908.25    214.63   100.70           2055.61
+repost     374.77    118.60    45.03            955.71
+
+[AVERAGE ENGAGEMENT BY MEDIA TYPE]
+--------------------------------------------------------------------------------
+              likes  comments  reposts  engagement_score
+media_type                                              
+image       1138.82    215.30   128.53           2427.35
+images       232.59     43.39    18.49            455.22
+video        327.08    164.76    25.45            948.65
+
+[HASHTAG INSIGHTS]
+--------------------------------------------------------------------------------
+Average hashtags per post (when used): 3.67
+Max hashtags in a single post:         52
+
+[KEY INSIGHTS]
+--------------------------------------------------------------------------------
+>> Best day to post: Sunday
+>> Best hour to post: 21:00
+>> Posts with questions get +37.58% more engagement
+>> Posts with CTA get +177.91% more engagement
+>> Best word count range: (500, 1000]
+
+================================================================================
+END OF REPORT
+================================================================================

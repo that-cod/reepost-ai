@@ -62,7 +62,7 @@ const tones = [
     name: "Provocative",
     emoji: "⚡",
     description: "Spark debate with bold statements",
-    color: "bg-pink-100 text-pink-600 hover:bg-pink-200",
+    color: "bg-light-green text-primary hover:bg-pastel-green",
   },
 ];
 

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         skip: offset,
         include: {
-          post: {
+          Post: {
             select: {
               id: true,
               content: true,
@@ -52,8 +52,15 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // Transform the data to match frontend expectations (lowercase 'post')
+    const transformedPosts = savedPosts.map(sp => ({
+      ...sp,
+      post: sp.Post, // Rename Post to post
+      Post: undefined, // Remove the uppercase version
+    }));
+
     return NextResponse.json({
-      savedPosts,
+      savedPosts: transformedPosts,
       total,
       limit,
       offset,
@@ -100,11 +107,18 @@ export async function POST(req: NextRequest) {
         postId: data.postId,
       },
       include: {
-        post: true,
+        Post: true,
       },
     });
 
-    return NextResponse.json(savedPost, { status: 201 });
+    // Transform to match frontend expectations
+    const transformedPost = {
+      ...savedPost,
+      post: savedPost.Post,
+      Post: undefined,
+    };
+
+    return NextResponse.json(transformedPost, { status: 201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

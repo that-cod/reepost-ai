@@ -66,7 +66,7 @@ export default function ComingSoon({
 
             {/* Newsletter signup hint */}
             <p className="text-center text-sm text-text-secondary mt-6">
-                Want early access? Stay tuned for updates on Reepost.ai
+                Want early access? Stay tuned for updates on Repost Ai
             </p>
         </div>
     );

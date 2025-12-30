@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { FileText, Loader2, Trash2, Calendar, Filter } from "lucide-react";
+import { FileText, Loader2, Trash2, Calendar, Filter, Edit, Check, X, Copy } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 
@@ -22,6 +22,8 @@ export default function MyPostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -66,6 +68,47 @@ export default function MyPostsPage() {
     } catch (error: any) {
       toast.error(error.message || "Failed to delete post");
     }
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success("Post copied to clipboard");
+  };
+
+  const handleEdit = (postId: string, content: string) => {
+    setEditingPostId(postId);
+    setEditedContent(content);
+  };
+
+  const handleSaveEdit = async (postId: string) => {
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editedContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update post");
+      }
+
+      // Update local state
+      setPosts(posts.map(p =>
+        p.id === postId
+          ? { ...p, content: editedContent }
+          : p
+      ));
+
+      setEditingPostId(null);
+      toast.success("Post updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update post");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditedContent("");
   };
 
   const filteredPosts = filterStatus === "ALL"
@@ -193,17 +236,67 @@ export default function MyPostsPage() {
               </div>
 
               <div className="bg-card-bg p-4 rounded-lg mb-4">
-                <p className="text-text-primary whitespace-pre-wrap line-clamp-4">
-                  {post.content}
-                </p>
+                {editingPostId === post.id ? (
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full min-h-[200px] p-4 border-2 border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary resize-none"
+                  />
+                ) : (
+                  <p className="text-text-primary whitespace-pre-wrap line-clamp-4">
+                    {post.content}
+                  </p>
+                )}
               </div>
 
-              {post.scheduledFor && (
-                <div className="flex items-center text-sm text-text-secondary">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Scheduled for {format(new Date(post.scheduledFor), "MMM d, yyyy 'at' h:mm a")}
+              <div className="flex items-center justify-between">
+                <div>
+                  {post.scheduledFor && (
+                    <div className="flex items-center text-sm text-text-secondary">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Scheduled for {format(new Date(post.scheduledFor), "MMM d, yyyy 'at' h:mm a")}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="flex space-x-2">
+                  {editingPostId === post.id ? (
+                    <>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="btn-secondary flex items-center space-x-2"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Cancel</span>
+                      </button>
+                      <button
+                        onClick={() => handleSaveEdit(post.id)}
+                        className="btn-primary flex items-center space-x-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Save</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleCopy(post.content)}
+                        className="btn-secondary flex items-center space-x-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(post.id, post.content)}
+                        className="btn-secondary flex items-center space-x-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Edit</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>

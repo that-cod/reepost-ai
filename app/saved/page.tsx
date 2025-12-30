@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bookmark, Loader2, X, Copy, Calendar } from "lucide-react";
+import { Bookmark, Loader2, X, Copy, Edit, Check, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 
@@ -23,6 +23,13 @@ export default function SavedPage() {
   const router = useRouter();
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState("");
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
+  const [schedulingContent, setSchedulingContent] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("09:00");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -70,6 +77,94 @@ export default function SavedPage() {
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast.success("Post copied to clipboard");
+  };
+
+  const handleEdit = (postId: string, content: string) => {
+    setEditingPostId(postId);
+    setEditedContent(content);
+  };
+
+  const handleSaveEdit = async (postId: string) => {
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editedContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update post");
+      }
+
+      // Update local state
+      setSavedPosts(savedPosts.map(sp =>
+        sp.post.id === postId
+          ? { ...sp, post: { ...sp.post, content: editedContent } }
+          : sp
+      ));
+
+      setEditingPostId(null);
+      toast.success("Post updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update post");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditedContent("");
+  };
+
+  const handleSchedulePost = (postId: string, content: string) => {
+    setSchedulingPostId(postId);
+    setSchedulingContent(content);
+    setShowScheduleModal(true);
+
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setSelectedDate(tomorrow.toISOString().split('T')[0]);
+  };
+
+  const handleConfirmSchedule = async () => {
+    if (!selectedDate || !schedulingContent) {
+      toast.error("Please select a date and ensure content is available");
+      return;
+    }
+
+    try {
+      const scheduledDateTime = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':');
+      scheduledDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
+
+      const response = await fetch('/api/calendar/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: schedulingContent,
+          scheduledFor: scheduledDateTime.toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Post scheduled successfully! View it in the Calendar.");
+        setShowScheduleModal(false);
+        setSchedulingPostId(null);
+        setSchedulingContent("");
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to schedule post");
+      }
+    } catch (error) {
+      console.error("Error scheduling post:", error);
+      toast.error("Failed to schedule post");
+    }
+  };
+
+  const handleCancelSchedule = () => {
+    setShowScheduleModal(false);
+    setSchedulingPostId(null);
+    setSchedulingContent("");
   };
 
   if (status === "loading" || isLoading) {
@@ -151,22 +246,137 @@ export default function SavedPage() {
               </div>
 
               <div className="bg-card-bg p-4 rounded-lg mb-4">
-                <p className="text-text-primary whitespace-pre-wrap">
-                  {savedPost.post.content}
-                </p>
+                {editingPostId === savedPost.post.id ? (
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full min-h-[200px] p-4 border-2 border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary resize-none"
+                  />
+                ) : (
+                  <p className="text-text-primary whitespace-pre-wrap">
+                    {savedPost.post.content}
+                  </p>
+                )}
               </div>
 
               <div className="flex space-x-2">
-                <button
-                  onClick={() => handleCopy(savedPost.post.content)}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>Copy</span>
-                </button>
+                {editingPostId === savedPost.post.id ? (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="btn-secondary flex items-center space-x-2"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Cancel</span>
+                    </button>
+                    <button
+                      onClick={() => handleSaveEdit(savedPost.post.id)}
+                      className="btn-primary flex items-center space-x-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Save</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleCopy(savedPost.post.content)}
+                      className="btn-secondary flex items-center space-x-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </button>
+                    <button
+                      onClick={() => handleEdit(savedPost.post.id, savedPost.post.content)}
+                      className="btn-secondary flex items-center space-x-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleSchedulePost(savedPost.post.id, savedPost.post.content)}
+                      className="btn-secondary flex items-center space-x-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Schedule</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Schedule Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Schedule Post</h2>
+              <button
+                onClick={handleCancelSchedule}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Date Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Schedule Date
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* Time Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Schedule Time
+                </label>
+                <input
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* Content Preview */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Post Content Preview
+                </label>
+                <div className="bg-gray-50 rounded-xl p-4 max-h-[200px] overflow-y-auto">
+                  <p className="text-gray-700 whitespace-pre-wrap">{schedulingContent}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleCancelSchedule}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSchedule}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-medium hover:from-primary-dark hover:to-primary transition-all flex items-center justify-center gap-2"
+                >
+                  <Calendar className="w-5 h-5" />
+                  Schedule Post
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

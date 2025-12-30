@@ -241,7 +241,7 @@ export default function SignInPage() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                        Reepost.ai
+                        Repost Ai
                     </h1>
                     <p className="text-text-secondary mt-2">
                         AI-powered LinkedIn content generator

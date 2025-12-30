@@ -80,7 +80,7 @@ export default function TopBar() {
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-pink-500 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
                   <span className="text-xs font-medium text-white">{userInitials}</span>
                 </div>
               )}

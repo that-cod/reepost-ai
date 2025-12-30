@@ -14,12 +14,19 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "prisma:generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "import-csv": "tsx scripts/import-csv-data.ts",
+    "import-csv-batch": "tsx scripts/import-csv-batch.ts",
+    "import-trending": "tsx scripts/import-trending-data.ts",
+    "import-trending-batch": "tsx scripts/import-trending-data-batch.ts",
+    "test-db": "tsx scripts/test-db-connection.ts",
+    "migrate": "tsx scripts/run-migration.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^6.19.0",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@supabase/supabase-js": "^2.81.1",
     "@upstash/ratelimit": "^2.0.7",
     "@upstash/redis": "^1.35.6",
@@ -27,8 +34,10 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.1.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^11.11.17",
     "ioredis": "^5.8.2",
     "lucide-react": "^0.454.0",
@@ -42,6 +51,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hot-toast": "^2.4.1",
+    "react-intersection-observer": "^10.0.0",
     "sharp": "^0.34.5",
     "stripe": "^19.3.1",
     "tailwind-merge": "^3.4.0",
@@ -63,6 +73,7 @@
     "postcss": "^8.4.47",
     "prisma": "^6.19.0",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.3"
   }
 }

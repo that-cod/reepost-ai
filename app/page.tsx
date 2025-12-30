@@ -1,17 +1,21 @@
-import { Navbar } from "@/components/landing/navbar";
-import { Hero } from "@/components/landing/hero";
-import { Features } from "@/components/landing/features";
-import { Pricing } from "@/components/landing/pricing";
-import { Footer } from "@/components/landing/footer";
+import NewHeader from "@/components/landing/NewHeader";
+import NewHero from "@/components/landing/NewHero";
+import NewWhySection from "@/components/landing/NewWhySection";
+import NewFeatures from "@/components/landing/NewFeatures";
+import NewTestimonials from "@/components/landing/NewTestimonials";
+import NewFAQ from "@/components/landing/NewFAQ";
+import NewFooter from "@/components/landing/NewFooter";
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen relative overflow-hidden bg-black text-white selection:bg-emerald-500/30">
-      <Navbar />
-      <Hero />
-      <Features />
-      <Pricing />
-      <Footer />
+    <main className="min-h-screen relative overflow-hidden bg-white">
+      <NewHeader />
+      <NewHero />
+      <NewWhySection />
+      <NewFeatures />
+      <NewTestimonials />
+      <NewFAQ />
+      <NewFooter />
     </main>
   );
 }

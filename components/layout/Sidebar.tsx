@@ -64,10 +64,10 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-pink-500 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-text-primary">Reepost.ai</span>
+          <span className="text-xl font-bold text-text-primary">Repost Ai</span>
         </Link>
       </div>
 

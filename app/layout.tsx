@@ -19,7 +19,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Reepost.ai - AI-Powered LinkedIn Content Generator",
+  title: "Repost Ai - AI-Powered LinkedIn Content Generator",
   description: "Generate viral LinkedIn posts with AI. Create, schedule, and manage professional content effortlessly.",
 };
 

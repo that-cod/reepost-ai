@@ -11,13 +11,15 @@ interface PostPreviewProps {
   isGenerating: boolean;
   postId?: string; // Optional - if provided, can be saved directly
   onPostSaved?: (postId: string) => void; // Callback when post is saved
+  onContentChange?: (content: string) => void; // Callback when content is edited
 }
 
 export default function PostPreview({
   content,
   isGenerating,
   postId,
-  onPostSaved
+  onPostSaved,
+  onContentChange
 }: PostPreviewProps) {
   const { data: session } = useSession();
   const [isSaving, setIsSaving] = useState(false);
@@ -26,6 +28,8 @@ export default function PostPreview({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(content);
 
   const userName = session?.user?.name || "You";
   const userInitials = userName
@@ -156,7 +160,21 @@ export default function PostPreview({
   };
 
   const handleEdit = () => {
-    toast.success("Opening editor...");
+    setIsEditing(true);
+    setEditedContent(content);
+  };
+
+  const handleSaveEdit = () => {
+    if (onContentChange) {
+      onContentChange(editedContent);
+    }
+    setIsEditing(false);
+    toast.success("Post updated!");
+  };
+
+  const handleCancelEdit = () => {
+    setEditedContent(content);
+    setIsEditing(false);
   };
 
   const openScheduleModal = () => {
@@ -226,7 +244,7 @@ export default function PostPreview({
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-semibold">
                   {userInitials}
                 </div>
               )}
@@ -240,9 +258,18 @@ export default function PostPreview({
             </div>
 
             {/* Post Content */}
-            <div className="whitespace-pre-wrap text-text-primary leading-relaxed">
-              {content}
-            </div>
+            {isEditing ? (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full min-h-[300px] p-4 border-2 border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary leading-relaxed resize-none"
+                placeholder="Edit your post content..."
+              />
+            ) : (
+              <div className="whitespace-pre-wrap text-text-primary leading-relaxed">
+                {content}
+              </div>
+            )}
 
             {/* Mock Engagement */}
             <div className="pt-4 border-t border-border">
@@ -270,32 +297,53 @@ export default function PostPreview({
       {/* Action Buttons */}
       {content && !isGenerating && (
         <div className="flex space-x-3 mt-4">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="btn-secondary flex-1 flex items-center justify-center space-x-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : savedPostId ? (
-              <>
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleCancelEdit}
+                className="btn-secondary flex-1 flex items-center justify-center space-x-2"
+              >
+                <X className="w-4 h-4" />
+                <span>Cancel</span>
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="btn-primary flex-1 flex items-center justify-center space-x-2"
+              >
                 <Check className="w-4 h-4" />
-                <span>Saved!</span>
-              </>
-            ) : (
-              <span>Save Draft</span>
-            )}
-          </button>
-          <button
-            onClick={openScheduleModal}
-            className="btn-primary flex-1 flex items-center justify-center space-x-2"
-          >
-            <Send className="w-4 h-4" />
-            <span>Schedule Post</span>
-          </button>
+                <span>Save Changes</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="btn-secondary flex-1 flex items-center justify-center space-x-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : savedPostId ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <span>Save Draft</span>
+                )}
+              </button>
+              <button
+                onClick={openScheduleModal}
+                className="btn-primary flex-1 flex items-center justify-center space-x-2"
+              >
+                <Send className="w-4 h-4" />
+                <span>Schedule Post</span>
+              </button>
+            </>
+          )}
         </div>
       )}
 

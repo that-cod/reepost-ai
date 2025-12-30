@@ -15,15 +15,17 @@ async function main() {
   const hashedPassword = await hash('password123', 12);
 
   const user = await prisma.user.upsert({
-    where: { email: 'demo@easygen.com' },
+    where: { email: 'demo@reepost.ai' },
     update: {},
     create: {
-      email: 'demo@easygen.com',
+      id: 'demo-user-12345',
+      email: 'demo@reepost.ai',
       password: hashedPassword,
       name: 'Demo User',
       plan: Plan.PRO,
       defaultTone: Tone.PROFESSIONAL,
       defaultIntensity: Intensity.MEDIUM,
+      updatedAt: new Date(),
     },
   });
 
@@ -34,6 +36,7 @@ async function main() {
     where: { userId: user.id },
     update: {},
     create: {
+      id: 'demo-settings-1',
       userId: user.id,
       autoPublish: false,
       defaultScheduleTime: '09:00',
@@ -45,6 +48,7 @@ async function main() {
       engagementNotifications: true,
       autoSyncEngagement: true,
       syncFrequency: 60,
+      updatedAt: new Date(),
     },
   });
 
@@ -54,6 +58,7 @@ async function main() {
   const posts = await Promise.all([
     prisma.post.create({
       data: {
+        id: 'demo-post-1',
         userId: user.id,
         content: `🚀 Excited to share my thoughts on AI innovation!
 
@@ -67,6 +72,7 @@ What's your take on AI in your industry?
         intensity: Intensity.MEDIUM,
         status: PostStatus.PUBLISHED,
         publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
         likes: 45,
         comments: 12,
         shares: 8,
@@ -75,6 +81,7 @@ What's your take on AI in your industry?
     }),
     prisma.post.create({
       data: {
+        id: 'demo-post-2',
         userId: user.id,
         content: `💡 Leadership isn't about being the loudest voice in the room.
 
@@ -92,6 +99,7 @@ What leadership qualities do you value most?
         intensity: Intensity.MEDIUM,
         status: PostStatus.PUBLISHED,
         publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         likes: 67,
         comments: 23,
         shares: 15,
@@ -100,16 +108,19 @@ What leadership qualities do you value most?
     }),
     prisma.post.create({
       data: {
+        id: 'demo-post-3',
         userId: user.id,
         content: `Draft post about productivity tips...`,
         topic: 'Productivity',
         tone: Tone.PROFESSIONAL,
         intensity: Intensity.LOW,
         status: PostStatus.DRAFT,
+        updatedAt: new Date(),
       },
     }),
     prisma.post.create({
       data: {
+        id: 'demo-post-4',
         userId: user.id,
         content: `Scheduled post about remote work trends...`,
         topic: 'Remote Work',
@@ -117,6 +128,7 @@ What leadership qualities do you value most?
         intensity: Intensity.MEDIUM,
         status: PostStatus.SCHEDULED,
         scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+        updatedAt: new Date(),
       },
     }),
   ]);
@@ -126,9 +138,11 @@ What leadership qualities do you value most?
   // Create analytics for published posts
   const publishedPosts = posts.filter((p) => p.status === PostStatus.PUBLISHED);
 
-  for (const post of publishedPosts) {
+  for (let i = 0; i < publishedPosts.length; i++) {
+    const post = publishedPosts[i];
     await prisma.analytics.create({
       data: {
+        id: `demo-analytics-${i + 1}`,
         userId: user.id,
         postId: post.id,
         eventType: 'POST_PUBLISHED',
@@ -150,6 +164,7 @@ What leadership qualities do you value most?
   // Create audit logs
   await prisma.auditLog.create({
     data: {
+      id: 'demo-audit-log-1',
       userId: user.id,
       action: 'SIGN_UP',
       resource: 'USER',
@@ -160,9 +175,10 @@ What leadership qualities do you value most?
   console.log('✅ Created audit logs');
 
   console.log('\n🎉 Seeding completed!');
-  console.log('\nTest credentials:');
-  console.log('Email: demo@easygen.com');
-  console.log('Password: password123\n');
+  console.log('\n📝 Test Account Credentials:');
+  console.log('   Email: demo@reepost.ai');
+  console.log('   Password: password123');
+  console.log('\n🔗 Login at: http://localhost:3005/auth/signin\n');
 }
 
 main()

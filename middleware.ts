@@ -21,6 +21,7 @@ export default withAuth(
           path.startsWith('/api/auth') ||
           path.startsWith('/api/webhooks') ||
           path.startsWith('/api/cron') ||
+          path.startsWith('/api/trending-posts') ||
           path === '/'
         ) {
           return true;

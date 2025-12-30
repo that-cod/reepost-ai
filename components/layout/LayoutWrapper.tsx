@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
+import UpcomingPostsReminder from "@/components/calendar/UpcomingPostsReminder";
 
 export default function LayoutWrapper({
     children,
@@ -27,6 +28,7 @@ export default function LayoutWrapper({
                     {children}
                 </main>
             </div>
+            <UpcomingPostsReminder />
         </div>
     );
 }

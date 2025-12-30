@@ -12,6 +12,22 @@ const nextConfig = {
   // Empty turbopack config to silence Next.js 16 warning
   turbopack: {},
 
+  // Image configuration for external domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
+    ],
+  },
+
   // Security headers
   async headers() {
     return [
